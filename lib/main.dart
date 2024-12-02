@@ -26,8 +26,12 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> {
   // Create an instance of ApiService
   final ApiService _apiService = ApiService();
+
   // List to hold the fetched tasks
   List<dynamic> _tasks = [];
+
+  // Variable to hold error messages
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -38,12 +42,19 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   // Method to fetch tasks and update the state
   void _fetchTasks() async {
-    // Fetch tasks from the API
-    final tasks = await _apiService.fetchTasks();
-    // Update the state with the fetched tasks
-    setState(() {
-      _tasks = tasks;
-    });
+    try {
+      // Fetch tasks from the API
+      final tasks = await _apiService.fetchTasks();
+      // Update the state with the fetched tasks
+      setState(() {
+        _tasks = tasks;
+      });
+    } catch (e) {
+      // Update the state with the error message
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
   }
 
   @override
@@ -52,17 +63,21 @@ class _TaskListScreenState extends State<TaskListScreen> {
       appBar: AppBar(
         title: const Text('Task Manager'),
       ),
-      body: ListView.builder(
-        // Set the number of items in the list
-        itemCount: _tasks.length,
-        // Build each item in the list
-        itemBuilder: (context, index) {
-          return ListTile(
-            // Display the task title
-            title: Text(_tasks[index]['title']),
-          );
-        },
-      ),
+      body: _errorMessage != null
+          ? Center(
+              child: Text(_errorMessage!),
+            )
+          : ListView.builder(
+              // Set the number of items in the list
+              itemCount: _tasks.length,
+              // Build each item in the list
+              itemBuilder: (context, index) {
+                return ListTile(
+                  // Display the task title
+                  title: Text(_tasks[index].title),
+                );
+              },
+            ),
     );
   }
 }
