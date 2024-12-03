@@ -1,108 +1,100 @@
-# Task Manager App - Part 3.2: Headers Interceptor
+### Retry Interceptor with `super.onError`
 
-This branch (`03-2-headers-interceptor`) introduces a headers interceptor to the Task Manager app. The headers interceptor adds common headers to all HTTP requests, ensuring consistency and reducing repetitive code.
-
-## Overview
-
-In this part, we:
-1. Explained what headers are and their importance.
-2. Created a headers interceptor to add common headers to all requests.
-3. Added the headers interceptor to Dio.
-4. Tested the interceptor by running the app and checking the request headers.
-
-## Understanding Headers
-
-### What are Headers?
-Headers are key-value pairs sent along with HTTP requests and responses. They provide essential information about the request or response, such as the type of content being sent, the length of the content, authentication details, and more.
-
-### Common Types of Headers
-1. **Content-Type**: Specifies the media type of the resource. For example, `application/json` indicates that the content is in JSON format.
-2. **Authorization**: Contains credentials for authenticating the client with the server. For example, `Bearer YOUR_TOKEN` is used for token-based authentication.
-3. **Accept**: Informs the server about the types of data the client can process. For example, `Accept: application/json` indicates that the client expects JSON data.
-4. **User-Agent**: Provides information about the client software making the request. For example, `User-Agent: Mozilla/5.0`.
-5. **Cache-Control**: Directs caching mechanisms on how to handle the request. For example, `Cache-Control: no-cache` instructs not to cache the response.
-
-### Importance of Headers
-1. **Content Negotiation**: Headers like `Content-Type` and `Accept` help in content negotiation between the client and server, ensuring that the data is in a format that both can understand.
-2. **Authentication and Security**: Headers such as `Authorization` are crucial for securing API requests and ensuring that only authenticated clients can access certain resources.
-3. **Performance Optimization**: Headers like `Cache-Control` can significantly impact the performance of web applications by controlling how responses are cached.
-4. **Metadata**: Headers provide additional metadata about the request or response, which can be used for debugging, logging, and monitoring purposes.
-
-## Steps
-
-### 1. Create a Headers Interceptor
-
-Create a new file `lib/interceptors/headers_interceptor.dart`:
-
-```dart
-import 'package:dio/dio.dart';
-
-class HeadersInterceptor extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // Add common headers to the request
-    options.headers.addAll({
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer YOUR_TOKEN',
-    });
-    // Continue with the request
-    super.onRequest(options, handler);
-  }
-}
-```
-
-### 2. Add the Interceptor to Dio
-
-Modify `lib/services/api_service.dart` to include the headers interceptor:
-
-```dart
-import 'package:dio/dio.dart';
-import '../models/task.dart';
-import '../interceptors/headers_interceptor.dart';
-
-class ApiService {
-  final Dio _dio;
-
-  ApiService() : _dio = Dio() {
-    // Add the headers interceptor
-    _dio.interceptors.add(HeadersInterceptor());
-  }
-
-  Future<List<Task>> fetchTasks() async {
-    try {
-      // Make a GET request to fetch tasks
-      final response = await _dio.get('https://jsonplaceholder.typicode.com/todos');
-      // Parse the response data into a list of Task objects
-      return (response.data as List).map((task) => Task.fromJson(task)).toList();
-    } on DioError catch (dioError) {
-      // Handle Dio errors
-      if (dioError.type == DioErrorType.connectTimeout) {
-        throw Exception('Connection Timeout');
-      } else if (dioError.type == DioErrorType.receiveTimeout) {
-        throw Exception('Receive Timeout');
-      } else if (dioError.type == DioErrorType.response) {
-        throw Exception('Received invalid status code: ${dioError.response?.statusCode}');
-      } else {
-        throw Exception('Something went wrong');
+1. **Create a Retry Interceptor**:
+    - Create a new file `lib/interceptors/retry_interceptor.dart`:
+      ```dart
+      import 'package:dio/dio.dart';
+ 
+      class RetryInterceptor extends Interceptor {
+        final Dio dio;
+        RetryInterceptor(this.dio);
+ 
+        @override
+        void onError(DioException err, ErrorInterceptorHandler handler) async {
+          // Check if the request should be retried
+          if (_shouldRetry(err)) {
+            try {
+              // Retry the request
+              final response = await dio.request(
+                err.requestOptions.path,
+                options: Options(
+                  method: err.requestOptions.method,
+                  headers: err.requestOptions.headers,
+                ),
+              );
+              // Resolve the response
+              return handler.resolve(response);
+            } catch (e) {
+              // If retry fails, pass the error to the next handler
+              return super.onError(err, handler);
+            }
+          }
+          // If no retry, pass the error to the next handler
+          return super.onError(err, handler);
+        }
+ 
+        // Determine if the request should be retried
+        bool _shouldRetry(DioException err) {
+          return err.type == DioExceptionType.connectionError || err.type == DioExceptionType.badResponse;
+        }
       }
-    } catch (e) {
-      // Handle other errors
-      throw Exception('Failed to load tasks');
-    }
-  }
-}
-```
+      ```
 
-### 3. Test the Interceptor
+   **Explanation**:
+    - **onError**: This method is called when an error occurs. We check if the request should be retried using the `_shouldRetry` method. If it should, we retry the request. If the retry fails, we call `super.onError` to pass the error to the next handler. If no retry is needed, we also call `super.onError`.
 
-Run the app and make a request. Check the request headers to ensure the common headers are included.
+2. **Add the Interceptor to Dio**:
+    - Modify `lib/services/api_service.dart` to include the retry interceptor:
+      ```dart
+      import 'package:dio/dio.dart';
+      import '../models/task.dart';
+      import '../interceptors/retry_interceptor.dart';
+ 
+      class ApiService {
+        final Dio _dio;
+ 
+        ApiService() : _dio = Dio() {
+          // Add the retry interceptor
+          _dio.interceptors.add(RetryInterceptor(_dio));
+        }
+ 
+        Future<List<Task>> fetchTasks() async {
+          try {
+            // Make a GET request to fetch tasks
+            final response = await _dio.get('https://jsonplaceholder.typicode.com/todos');
+            // Parse the response data into a list of Task objects
+            return (response.data as List).map((task) => Task.fromJson(task)).toList();
+          } on DioException catch (dioException) {
+            // Handle Dio exceptions
+            if (dioException.type == DioExceptionType.connectionTimeout) {
+              throw Exception('Connection Timeout');
+            } else if (dioException.type == DioExceptionType.receiveTimeout) {
+              throw Exception('Receive Timeout');
+            } else if (dioException.type == DioExceptionType.badResponse) {
+              throw Exception('Received invalid status code: ${dioException.response?.statusCode}');
+            } else {
+              throw Exception('Something went wrong');
+            }
+          } catch (e) {
+            // Handle other errors
+            throw Exception('Failed to load tasks');
+          }
+        }
+      }
+      ```
 
-## Summary
+   **Explanation**:
+    - We import the `RetryInterceptor` and add it to the Dio instance using `_dio.interceptors.add(RetryInterceptor(_dio))`.
+    - The `fetchTasks` method now catches `DioException` instead of `DioError` and handles different types of exceptions accordingly.
 
-In this part, we:
-1. Explained what headers are and their importance.
-2. Created a headers interceptor to add common headers to all requests.
-3. Added the headers interceptor to Dio.
-4. Tested the interceptor by running the app and checking the request headers.
+3. **Test the Interceptor**:
+    - Run the app and make a request that fails (e.g., by disconnecting from the internet). Check if the request is retried.
 
-This interceptor ensures that all requests include necessary headers, such as `Content-Type` and `Authorization`, without having to manually add them to each request. This is especially useful for maintaining consistency and reducing repetitive code.
+### Summary
+In this tutorial, we:
+1. Created a retry interceptor to retry failed requests using `DioException`.
+2. Added the retry interceptor to Dio.
+3. Ensured proper error handling by calling `super.onError`.
+4. Tested the interceptor by running the app and checking if failed requests are retried.
+
+This interceptor enhances the robustness of your app by automatically retrying failed requests, which can be useful in scenarios where network issues are temporary.
