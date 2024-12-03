@@ -1,57 +1,71 @@
+# Task Manager App - Part 3.1: Logging Interceptor
 
-# Task Manager App - Part 2: Handling Responses and Errors
-
-
-This branch (`02-handling-responses-errors`) enhances the Task Manager app by parsing JSON responses and handling different types of errors using Dio.
+This branch (`03-1-logging-interceptor`) introduces a basic logging interceptor to the Task Manager app. The logging interceptor logs all HTTP requests and responses, which is useful for debugging and monitoring.
 
 ## Overview
 
 In this part, we:
-1. Created a `Task` model to parse JSON responses.
-2. Updated `ApiService` to handle different types of errors.
-3. Modified the UI to display error messages.
+1. Explained what interceptors are and their benefits.
+2. Created a basic logging interceptor to log all requests and responses.
+3. Added the logging interceptor to Dio.
+4. Tested the interceptor by running the app and checking the console logs.
 
 ## Steps
 
-### 1. Create a Task Model
+### 1. Create a Logging Interceptor
 
-Create a new file `lib/models/task.dart`:
+Create a new file `lib/interceptors/logging_interceptor.dart`:
 
 ```dart
-class Task {
-  final int id;
-  final String title;
-  final bool completed;
+import 'package:dio/dio.dart';
 
-  Task({required this.id, required this.title, required this.completed});
+class LoggingInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    // Log the request method and path
+    print('REQUEST[${options.method}] => PATH: ${options.path}');
+    // Continue with the request
+    super.onRequest(options, handler);
+  }
 
-  // Factory method to create a Task from JSON
-  factory Task.fromJson(Map<String, dynamic> json) {
-    return Task(
-      id: json['id'],
-      title: json['title'],
-      completed: json['completed'],
-    );
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    // Log the response status code and path
+    print('RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
+    // Continue with the response
+    super.onResponse(response, handler);
+  }
+
+  @override
+  void onError(DioError err, ErrorInterceptorHandler handler) {
+    // Log the error status code and path
+    print('ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}');
+    // Continue with the error
+    super.onError(err, handler);
   }
 }
 ```
 
-### 2. Update ApiService to Handle Errors
+### 2. Add the Interceptor to Dio
 
-Modify `lib/services/api_service.dart`:
+Modify `lib/services/api_service.dart` to include the logging interceptor:
 
 ```dart
 import 'package:dio/dio.dart';
 import '../models/task.dart';
+import '../interceptors/logging_interceptor.dart';
 
 class ApiService {
-  // Create an instance of Dio
-  final Dio _dio = Dio();
+  final Dio _dio;
 
-  // Method to fetch tasks from the API
+  ApiService() : _dio = Dio() {
+    // Add the logging interceptor
+    _dio.interceptors.add(LoggingInterceptor());
+  }
+
   Future<List<Task>> fetchTasks() async {
     try {
-      // Make a GET request to the API endpoint
+      // Make a GET request to fetch tasks
       final response = await _dio.get('https://jsonplaceholder.typicode.com/todos');
       // Parse the response data into a list of Task objects
       return (response.data as List).map((task) => Task.fromJson(task)).toList();
@@ -74,96 +88,21 @@ class ApiService {
 }
 ```
 
-### 3. Update UI to Display Errors
+### 3. Test the Interceptor
 
-Modify `lib/main.dart`:
+Run the app and check the console for logs of requests and responses. You should see logs similar to:
 
-```dart
-import 'package:flutter/material.dart';
-import 'services/api_service.dart';
-import 'models/task.dart';
-
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: TaskListScreen(),
-    );
-  }
-}
-
-class TaskListScreen extends StatefulWidget {
-  @override
-  _TaskListScreenState createState() => _TaskListScreenState();
-}
-
-class _TaskListScreenState extends State<TaskListScreen> {
-  // Create an instance of ApiService
-  final ApiService _apiService = ApiService();
-  // List to hold the fetched tasks
-  List<Task> _tasks = [];
-  // Variable to hold error messages
-  String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    // Fetch tasks when the widget is initialized
-    _fetchTasks();
-  }
-
-  // Method to fetch tasks and update the state
-  void _fetchTasks() async {
-    try {
-      // Fetch tasks from the API
-      final tasks = await _apiService.fetchTasks();
-      // Update the state with the fetched tasks
-      setState(() {
-        _tasks = tasks;
-        _errorMessage = null;
-      });
-    } catch (e) {
-      // Update the state with the error message
-      setState(() {
-        _errorMessage = e.toString();
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Task Manager'),
-      ),
-      body: _errorMessage != null
-          ? Center(child: Text(_errorMessage!))
-          : ListView.builder(
-              // Set the number of items in the list
-              itemCount: _tasks.length,
-              // Build each item in the list
-              itemBuilder: (context, index) {
-                return ListTile(
-                  // Display the task title
-                  title: Text(_tasks[index].title),
-                );
-              },
-            ),
-    );
-  }
-}
+```
+REQUEST[GET] => PATH: /todos
+RESPONSE[200] => PATH: /todos
 ```
 
 ## Summary
 
-In this part, we enhanced the Task Manager app by:
-1. Creating a `Task` model to parse JSON responses.
-2. Updating `ApiService` to handle different types of errors.
-3. Modifying the UI to display error messages.
+In this part, we:
+1. Explained what interceptors are and their benefits.
+2. Created a basic logging interceptor to log all requests and responses.
+3. Added the logging interceptor to Dio.
+4. Tested the interceptor by running the app and checking the console logs.
 
-This ensures that our app can gracefully handle errors and display meaningful messages to the user.
-
+This sets the foundation for using interceptors in your Task Manager app. Each subsequent tutorial will build on this foundation, adding more complex interceptors and functionality.
