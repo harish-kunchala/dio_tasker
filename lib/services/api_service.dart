@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dio_tasker/interceptors/headers_interceptor.dart';
 import 'package:dio_tasker/interceptors/logging_interceptor.dart';
+import 'package:dio_tasker/interceptors/retry_interceptor.dart';
 
 import '../models/tasks.dart';
 
@@ -13,6 +14,9 @@ class ApiService {
 
     // Add the headers interceptor.
     _dio.interceptors.add(HeadersInterceptor());
+
+    // Add the retry interceptor.
+    _dio.interceptors.add(RetryInterceptor(_dio));
   }
 
   // Method to fetch tasks from the API
