@@ -1,15 +1,20 @@
 import 'package:dio/dio.dart';
+import 'package:dio_tasker/interceptors/logging_interceptor.dart';
 
 import '../models/tasks.dart';
 
 class ApiService {
-  // Create an instance of Dio
-  final _dio = Dio();
+  final Dio _dio;
+
+  ApiService() : _dio = Dio() {
+    // Add the logging interceptor
+    _dio.interceptors.add(LoggingInterceptor());
+  }
 
   // Method to fetch tasks from the API
   Future<List<Task>> fetchTasks() async {
     try {
-      // Make a GET request to the API endpoint
+      // Make a GET request to fetch tasks
       final response =
           await _dio.get('https://jsonplaceholder.typicode.com/todos');
       // Parse the response data into a list of Task objects
