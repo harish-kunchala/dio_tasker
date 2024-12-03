@@ -4,10 +4,13 @@ class LoggingInterceptor extends Interceptor {
 
   /// onRequest: This method is called before a request is sent.
   /// We log the HTTP method (GET, POST, etc.) and the request path.
+  /// We log the HTTP request headers
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     // Log the request method and path.
     print('REQUEST[${options.method}] => PATH: ${options.path}');
+    // Log the request header
+    print('REQUEST HEADER[${options.headers.toString()}');
     // Continue with the request.
     super.onRequest(options, handler);
   }

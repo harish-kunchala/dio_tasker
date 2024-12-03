@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_tasker/interceptors/headers_interceptor.dart';
 import 'package:dio_tasker/interceptors/logging_interceptor.dart';
 
 import '../models/tasks.dart';
@@ -9,6 +10,9 @@ class ApiService {
   ApiService() : _dio = Dio() {
     // Add the logging interceptor
     _dio.interceptors.add(LoggingInterceptor());
+
+    // Add the headers interceptor.
+    _dio.interceptors.add(HeadersInterceptor());
   }
 
   // Method to fetch tasks from the API
