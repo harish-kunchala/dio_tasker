@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_tasker/interceptors/auth_interceptor.dart';
 import 'package:dio_tasker/interceptors/headers_interceptor.dart';
 import 'package:dio_tasker/interceptors/logging_interceptor.dart';
 import 'package:dio_tasker/interceptors/retry_interceptor.dart';
@@ -9,14 +10,17 @@ class ApiService {
   final Dio _dio;
 
   ApiService() : _dio = Dio() {
-    // Add the logging interceptor
-    _dio.interceptors.add(LoggingInterceptor());
-
-    // Add the headers interceptor.
+    // Add the headers interceptor
     _dio.interceptors.add(HeadersInterceptor());
 
-    // Add the retry interceptor.
+    // Add the retry interceptor
     _dio.interceptors.add(RetryInterceptor(_dio));
+
+    // Add the authentication interceptor
+    _dio.interceptors.add(AuthInterceptor(_dio));
+
+    // Add the logging interceptor last
+    _dio.interceptors.add(LoggingInterceptor());
   }
 
   // Method to fetch tasks from the API
