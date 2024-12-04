@@ -9,8 +9,8 @@ class HeadersInterceptor extends Interceptor {
     // Add common headers to the request.
     options.headers.addAll({
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer YOUR_TOKEN',
     });
+
 
     // Continue with the request.
     super.onRequest(options, handler);

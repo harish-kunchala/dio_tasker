@@ -10,7 +10,7 @@ class LoggingInterceptor extends Interceptor {
     // Log the request method and path.
     print('REQUEST[${options.method}] => PATH: ${options.path}');
     // Log the request header
-    print('REQUEST HEADER[${options.headers.toString()}');
+    print('REQUEST HEADER[${options.headers.toString()}]');
     // Continue with the request.
     super.onRequest(options, handler);
   }
