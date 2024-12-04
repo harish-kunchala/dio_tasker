@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dio_tasker/interceptors/auth_interceptor.dart';
+import 'package:dio_tasker/interceptors/error_interceptor.dart';
 import 'package:dio_tasker/interceptors/headers_interceptor.dart';
 import 'package:dio_tasker/interceptors/logging_interceptor.dart';
 import 'package:dio_tasker/interceptors/retry_interceptor.dart';
@@ -14,10 +15,13 @@ class ApiService {
     _dio.interceptors.add(HeadersInterceptor());
 
     // Add the retry interceptor
-    _dio.interceptors.add(RetryInterceptor(_dio));
+    // _dio.interceptors.add(RetryInterceptor(_dio));
 
     // Add the authentication interceptor
     _dio.interceptors.add(AuthInterceptor(_dio));
+
+    // Add the error interceptor.
+    _dio.interceptors.add(ErrorInterceptor());
 
     // Add the logging interceptor last
     _dio.interceptors.add(LoggingInterceptor());
