@@ -1,7 +1,7 @@
-### Adding Authorization Header Dynamically
+### Custom Error Handling Interceptor
 
 1. **Modify the Authentication Interceptor**:
-   - Update `lib/interceptors/auth_interceptor.dart` to check if the `Authorization` header is already present and add it if it's missing:
+   - Create a new file lib/interceptors/error_interceptor.dart
      ```dart
      import 'package:dio/dio.dart';
 
